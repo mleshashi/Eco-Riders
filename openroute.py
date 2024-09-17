@@ -21,6 +21,9 @@ routes = client.directions(
 route_geom = routes['features'][0]['geometry']
 route_distance = routes['features'][0]['properties']['segments'][0]['distance']
 
+# Convert distance to kilometers
+route_distance_km = route_distance / 1000  # Convert meters to kilometers
+
 # Initialize a Folium map centered at the midpoint of start and end coordinates
 m = folium.Map(location=[(start_coords[1] + end_coords[1]) / 2, (start_coords[0] + end_coords[0]) / 2], zoom_start=6)
 
@@ -35,5 +38,5 @@ folium.PolyLine(
 # Display the map in Streamlit
 st_folium(m, width=725)
 
-# Show the route distance
-st.write(f"The total length of the route along the road is {route_distance:.2f} meters.")
+# Ensure the text is shown after the map is displayed
+st.write(f"The total length of the route along the road is {route_distance_km:.2f} Kms.")
