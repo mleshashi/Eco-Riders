@@ -1,32 +1,27 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+from streamlit_folium import st_folium
+import folium
+import openrouteservice
 import base64
 
+# Initialize the OpenRouteService client with your API key
+client = openrouteservice.Client(key='5b3ce3597851110001cf6248e1346f2a8cea4749bc4a86ac03b441ec')  # Replace with your actual ORS API key
+
 # Path to the CSV file
-CSV_FILE = "dataset/fan_data.csv"
+CSV_FILE = "dataset/fan_data2.csv"
 
 # Load existing data
 def load_data(file_path):
-    try:
-        data = pd.read_csv(file_path)
-        return data
-    except FileNotFoundError:
-        return pd.DataFrame(columns=[
-            "ID", "First Name", "Last Name", "Gender", "Area", "City", "Post Code", "Distance (km)", 
-            "Age", "Travel Date", "Mode of Transport", "Provider/User", 
-            "Offer Vehicle", "Seats Provided/Needed", "Lon", "Lat", "Short Description"
-        ])
-
-# Save updated data to the CSV file
-def save_data(data, file_path):
-    data.to_csv(file_path, index=False)
+    data = pd.read_csv(file_path)
+    return data
 
 # Function to read and encode an image file as base64
 def get_base64_image(image_file):
     with open(image_file, 'rb') as img_file:
         return base64.b64encode(img_file.read()).decode()
-
+    
 # Inject custom CSS for background image using base64 encoding
 def add_background_image(image_file):
     base64_image = get_base64_image(image_file)
@@ -66,6 +61,13 @@ def add_background_image(image_file):
         """,
         unsafe_allow_html=True
     )
+
+# Add background image (replace 'path/to/your/image.png' with the actual path to your image)
+add_background_image('dataset/cover.png')
+
+# Save updated data to the CSV file
+def save_data(data, file_path):
+    data.to_csv(file_path, index=False)
 
 # Display the form for new user registration
 def display_registration_form(data):
@@ -157,11 +159,69 @@ def display_registration_form(data):
 
         st.success(f"🎉 {first_name} {last_name} has been registered successfully!")
 
+        # Set session state to indicate that the user has registered
+        st.session_state['registered'] = True
+        st.session_state['area'] = area
+        st.session_state['city'] = city
+
+    # If registration is successful, show the "Open Route Map" button
+    if st.session_state.get('registered'):
+        if st.button("Open Route Map"):
+            # Set session state to show the map
+            st.session_state['show_map'] = True
+
+# Function to display the route map
+def display_route_map(area, city):
+    # Geocode the user's address to get coordinates
+    user_location = f"{area}, {city}"
+    try:
+        geocode_result = client.pelias_search(text=user_location)
+        if geocode_result and geocode_result['features']:
+            start_coords = geocode_result['features'][0]['geometry']['coordinates']  # [lon, lat]
+            end_coords = [10.9881, 49.4772]  # SPVGG GREUTHER FÜRTH stadium coordinates [lon, lat]
+
+            # Get directions from OpenRouteService
+            routes = client.directions(
+                coordinates=[start_coords, end_coords],
+                profile='driving-car',
+                format='geojson'
+            )
+
+            # Extract the route geometry and distance from the response
+            route_geom = routes['features'][0]['geometry']
+            route_distance = routes['features'][0]['properties']['segments'][0]['distance']
+
+            # Convert distance to kilometers
+            route_distance_km = route_distance / 1000  # Convert meters to kilometers
+
+            # Initialize a Folium map centered at the midpoint of start and end coordinates
+            m = folium.Map(location=[(start_coords[1] + end_coords[1]) / 2, (start_coords[0] + end_coords[0]) / 2], zoom_start=6)
+
+            # Add the route to the map using GeoJSON coordinates directly
+            folium.PolyLine(
+                locations=[[coord[1], coord[0]] for coord in route_geom['coordinates']],  # Swap back to [latitude, longitude]
+                tooltip='Route',
+                color='blue',
+                weight=5
+            ).add_to(m)
+
+            # Display the map in Streamlit
+            st_folium(m, width=725, height=500)  # height parametresi ile haritanın yüksekliğini sınırlayın
+
+
+            # Ensure the text is shown after the map is displayed
+            st.write(f"The total length of the route along the road is {route_distance_km:.2f} Kms.")
+        else:
+            st.error("Could not find coordinates for the address. Please enter a valid address.")
+    except Exception as e:
+        st.error(f"Geocoding error: {e}")
+
 # Load data from CSV
 data = load_data(CSV_FILE)
 
-# Add background image (replace 'path/to/your/image.png' with the actual path to your image)
-add_background_image('dataset/cover.png')
-
 # Display the registration form on the screen
 display_registration_form(data)
+
+# If the map should be shown, call the function to display the route map
+if st.session_state.get('show_map'):
+    display_route_map(st.session_state['area'], st.session_state['city'])
