@@ -40,10 +40,18 @@ def display_registration_form(data):
     age = st.number_input("Age", min_value=18)
     travel_date = st.date_input("Travel Date", value=datetime.now())
     mode_of_transport = st.selectbox("Mode of Transport", ["Car", "Bus"])
-    provider_user = st.selectbox("Provider/User", ["Provider", "User"])
-    provided_seats = st.number_input("Seats Provided", min_value=0)
-    #offer_vehicle = st.selectbox("Offer Vehicle", ["Yes", "No", "-"])
-    needed_seats = st.number_input("Seats Needed", min_value=0)
+    if mode_of_transport == 'Car':
+        provider_user = st.selectbox("Provider/User", ["Provider", "User"])
+        if provider_user == 'Provider':
+            needed_seats = [0]
+            provided_seats = st.number_input("Seats Provided", min_value=0)
+        else:
+            provided_seats = [0]
+            needed_seats = st.number_input("Seats Needed", min_value=0)
+    else:
+        provider_user = [0]
+        provided_seats = [0]
+        needed_seats = st.number_input("Seats Needed", min_value=0)
     short_description = st.text_area("Short Description")
 
     # Button to submit the form
