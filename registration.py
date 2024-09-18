@@ -43,11 +43,6 @@ def add_background_image(image_file):
         h1 {{
             color: white;
             font-weight: bold;
-            font-size: 2rem; /* Adjust font size */
-            line-height: 1.2; /* Adjust line height */
-            display: flex;
-            justify-content: center; /* Centers the text horizontally */
-            width: 100%; /* Ensures the title spans the full width */
         }}
         .stTextInput > label, .stNumberInput > label, .stSelectbox > label, 
         .stDateInput > label, .stTextArea > label {{
@@ -71,64 +66,74 @@ def save_data(data, file_path):
 
 # Display the form for new user registration
 def display_registration_form(data):
-    # Title with Logo
+
     col1, col2 = st.columns([1, 4])  # Use two columns, one for the logo and one for the text
     with col1:
         st.image('dataset/logo.png', width=100)  # Add your logo file path and adjust width if necessary
     with col2:
         st.markdown("<h2 style='color:white; text-align:left; font-weight: bold;'>Herzlichen Glückwunsch! Bist du bereit für den Spieltag?</h2>", unsafe_allow_html=True)
 
-    # Second Title
     st.title("🚗 Fahr mit uns, um den Planeten 🌍 zu retten.")
 
     # Create a centered layout using columns
-    col1, col2 = st.columns(2)
+    col3, col4 = st.columns(2)
     
     # Line 1: First Name and Last Name
-    with col1:
+    with col3:
         first_name = st.text_input("First Name", help="Enter your first name")
-    with col2:
+    with col4:
         last_name = st.text_input("Last Name", help="Enter your last name")
 
     # Line 2: Gender, Age, and Travel Date
-    col3, col4, col5 = st.columns(3)
-    with col3:
-        gender = st.selectbox("Gender", ["Male", "Female", "Other"], help="Select your gender")
-    with col4:
-        age = st.number_input("Age", min_value=0, help="Enter your age")
+    col5, col6, col7 = st.columns(3)
     with col5:
+        gender = st.selectbox("Gender", ["Male", "Female", "Other"], help="Select your gender")
+    with col6:
+        age = st.number_input("Age", min_value=18, help="Enter your age")
+    with col7:
         travel_date = st.date_input("Travel Date", value=datetime.now(), help="Select your travel date")
 
     # Line 3: City, Street, and Post Code
-    col6, col7, col8 = st.columns(3)
-    with col6:
-        city = st.text_input("City", help="Enter your city")
-    with col7:
-        area = st.text_input("Street", help="Enter your street or area")
+    col8, col9, col10 = st.columns(3)
     with col8:
+        city = st.text_input("City", help="Enter your city")
+    with col9:
+        area = st.text_input("Street", help="Enter your street or area")
+    with col10:
         post_code = st.text_input("Post Code", help="Enter your post code")
 
     # Line 4: Mode of Transport, Provider/User, Offer Vehicle
-    col9, col10, col11 = st.columns(3)
-    with col9:
-        mode_of_transport = st.selectbox("Mode of Transport", ["Car", "Train", "Bus"], help="Select your mode of transport")
-    with col10:
-        provider_user = st.selectbox("Provider/User", ["Provider", "User", "-"], help="Are you offering or looking for transport?")
+    col11, col12, col13 = st.columns(3)
     with col11:
-        offer_vehicle = st.selectbox("Offer Vehicle", ["Yes", "No", "-"], help="Do you offer a vehicle?")
-
-    # Row for seats, short description, and submit button
-    col12, col13 = st.columns([2, 5])  # Seats column is shorter, Description column is wider
+        mode_of_transport = st.selectbox("Mode of Transport", ["Car", "Bus"], help="Select your mode of transport")
+    
     with col12:
-        seats = st.number_input("Seats Provided/Needed", min_value=0, help="Specify the number of seats available or needed", max_value=50)
-        
+        if mode_of_transport == 'Car':
+            provider_user = st.selectbox("Provider/User", ["Provider", "User"])
+            if provider_user == 'Provider':
+                provider_user = 1
+                needed_seats = 0
+                with col13:
+                    provided_seats = st.number_input("Seats Provided", min_value=0)
+            else:
+                provider_user = 0
+                provided_seats = 0
+                with col13:
+                    needed_seats = st.number_input("Seats Needed", min_value=0)
+        else:
+            provider_user = 0
+            provided_seats = 0
+            with col13:
+                needed_seats = st.number_input("Seats Needed", min_value=0)
+    col14, col15 = st.columns([2, 5])
+    with col14:        
         # Place the submit button below the seats input
         submit_button = st.button("🚀 Submit Registration")  # This button will now appear below the "Seats Provided/Needed" field
 
-    with col13:
+    with col15:
         short_description = st.text_area("Short Description", help="Provide any additional details", height=50, max_chars=500)
 
-    # Handle form submission after rendering
+    # Button to submit the form
     if submit_button:
         # Create a new entry as a DataFrame
         new_entry = pd.DataFrame({
@@ -138,14 +143,13 @@ def display_registration_form(data):
             "Gender": [gender],
             "Area": [area],
             "City": [city],
-            "Post Code": [post_code],
             "Distance (km)": [0],  # Default value since it's not used in form
             "Age": [age],
             "Travel Date": [travel_date],
             "Mode of Transport": [mode_of_transport],
-            "Provider/User": [provider_user],
-            "Offer Vehicle": [offer_vehicle],
-            "Seats Provided/Needed": [seats],
+            "Provider": [provider_user],
+            "Provided Seats": [provided_seats],
+            "Needed Seats": [needed_seats],
             "Lon": [0],  # Default value since it's not used in form
             "Lat": [0],  # Default value since it's not used in form
             "Short Description": [short_description]
@@ -157,7 +161,7 @@ def display_registration_form(data):
         # Save the updated data
         save_data(updated_data, CSV_FILE)
 
-        st.success(f"🎉 {first_name} {last_name} has been registered successfully!")
+        st.success(f"{first_name} {last_name} has been registered successfully!")
 
         # Set session state to indicate that the user has registered
         st.session_state['registered'] = True
@@ -194,7 +198,6 @@ def display_route_map(area, city):
             # Convert distance to kilometers
             route_distance_km = route_distance / 1000  # Convert meters to kilometers
 
-            # Display the route distance above the map in white font
             st.markdown(f"<p style='color:white; font-size:18px; font-weight:bold;'>The total length of the route along the road is {route_distance_km:.2f} Kms.</p>", unsafe_allow_html=True)
 
             # Initialize a Folium map centered at the midpoint of start and end coordinates
@@ -210,6 +213,10 @@ def display_route_map(area, city):
 
             # Display the map in Streamlit
             st_folium(m, width=725, height=500)  # height parametresi ile haritanın yüksekliğini sınırlayın
+
+
+            # Ensure the text is shown after the map is displayed
+            #st.write(f"The total length of the route along the road is {route_distance_km:.2f} Kms.")
         else:
             st.error("Could not find coordinates for the address. Please enter a valid address.")
     except Exception as e:
