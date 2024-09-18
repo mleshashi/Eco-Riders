@@ -194,6 +194,9 @@ def display_route_map(area, city):
             # Convert distance to kilometers
             route_distance_km = route_distance / 1000  # Convert meters to kilometers
 
+            # Display the route distance above the map in white font
+            st.markdown(f"<p style='color:white; font-size:18px; font-weight:bold;'>The total length of the route along the road is {route_distance_km:.2f} Kms.</p>", unsafe_allow_html=True)
+
             # Initialize a Folium map centered at the midpoint of start and end coordinates
             m = folium.Map(location=[(start_coords[1] + end_coords[1]) / 2, (start_coords[0] + end_coords[0]) / 2], zoom_start=6)
 
@@ -207,10 +210,6 @@ def display_route_map(area, city):
 
             # Display the map in Streamlit
             st_folium(m, width=725, height=500)  # height parametresi ile haritanın yüksekliğini sınırlayın
-
-
-            # Ensure the text is shown after the map is displayed
-            st.write(f"The total length of the route along the road is {route_distance_km:.2f} Kms.")
         else:
             st.error("Could not find coordinates for the address. Please enter a valid address.")
     except Exception as e:
