@@ -48,6 +48,11 @@ def add_background_image(image_file):
         h1 {{
             color: white;
             font-weight: bold;
+            font-size: 2rem; /* Adjust font size */
+            line-height: 1.2; /* Adjust line height */
+            display: flex;
+            justify-content: center; /* Centers the text horizontally */
+            width: 100%; /* Ensures the title spans the full width */
         }}
         .stTextInput > label, .stNumberInput > label, .stSelectbox > label, 
         .stDateInput > label, .stTextArea > label {{
@@ -64,7 +69,15 @@ def add_background_image(image_file):
 
 # Display the form for new user registration
 def display_registration_form(data):
-    st.title("🚗 Fan Registration Page")
+    # Title with Logo
+    col1, col2 = st.columns([1, 4])  # Use two columns, one for the logo and one for the text
+    with col1:
+        st.image('dataset/logo.png', width=100)  # Add your logo file path and adjust width if necessary
+    with col2:
+        st.markdown("<h2 style='color:white; text-align:left; font-weight: bold;'>Herzlichen Glückwunsch! Bist du bereit für den Spieltag?</h2>", unsafe_allow_html=True)
+
+    # Second Title
+    st.title("🚗 Fahr mit uns, um den Planeten 🌍 zu retten.")
 
     # Create a centered layout using columns
     col1, col2 = st.columns(2)
