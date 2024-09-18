@@ -1,6 +1,12 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+from streamlit_folium import st_folium
+import folium
+import openrouteservice
+
+# Initialize the OpenRouteService client with your API key
+client = openrouteservice.Client(key='5b3ce3597851110001cf6248e1346f2a8cea4749bc4a86ac03b441ec')  # Replace with your actual ORS API key
 
 # Path to the CSV file
 CSV_FILE = "dataset/fan_data.csv"
@@ -31,15 +37,12 @@ def display_registration_form(data):
     gender = st.selectbox("Gender", ["Male", "Female", "Other"])
     area = st.text_input("Street")
     city = st.text_input("City")
-    # distance = st.number_input("Distance (km)", min_value=0)
     age = st.number_input("Age", min_value=0)
     travel_date = st.date_input("Travel Date", value=datetime.now())
     mode_of_transport = st.selectbox("Mode of Transport", ["Car", "Train", "Bus"])
     provider_user = st.selectbox("Provider/User", ["Provider", "User", "-"])
-    offer_vehicle = st.selectbox("Offer Vehicle", ["Yes", "No", "-"])
+    #offer_vehicle = st.selectbox("Offer Vehicle", ["Yes", "No", "-"])
     seats = st.number_input("Seats Provided/Needed", min_value=0)
-    #lon = st.number_input("Longitude")
-    #lat = st.number_input("Latitude")
     short_description = st.text_area("Short Description")
 
     # Button to submit the form
@@ -57,7 +60,7 @@ def display_registration_form(data):
             "Travel Date": [travel_date],
             "Mode of Transport": [mode_of_transport],
             "Provider/User": [provider_user],
-            "Offer Vehicle": [offer_vehicle],
+            "Offer Vehicle": [0],
             "Seats Provided/Needed": [seats],
             "Lon": [0],  # Default value since it's not used in form
             "Lat": [0],  # Default value since it's not used in form
@@ -72,8 +75,68 @@ def display_registration_form(data):
 
         st.success(f"{first_name} {last_name} has been registered successfully!")
 
+        # Set session state to indicate that the user has registered
+        st.session_state['registered'] = True
+        st.session_state['area'] = area
+        st.session_state['city'] = city
+
+    # If registration is successful, show the "Open Route Map" button
+    if st.session_state.get('registered'):
+        if st.button("Open Route Map"):
+            # Set session state to show the map
+            st.session_state['show_map'] = True
+
+# Function to display the route map
+def display_route_map(area, city):
+    # Geocode the user's address to get coordinates
+    user_location = f"{area}, {city}"
+    try:
+        geocode_result = client.pelias_search(text=user_location)
+        if geocode_result and geocode_result['features']:
+            start_coords = geocode_result['features'][0]['geometry']['coordinates']  # [lon, lat]
+            end_coords = [10.9881, 49.4772]  # SPVGG GREUTHER FÜRTH stadium coordinates [lon, lat]
+
+            # Get directions from OpenRouteService
+            routes = client.directions(
+                coordinates=[start_coords, end_coords],
+                profile='driving-car',
+                format='geojson'
+            )
+
+            # Extract the route geometry and distance from the response
+            route_geom = routes['features'][0]['geometry']
+            route_distance = routes['features'][0]['properties']['segments'][0]['distance']
+
+            # Convert distance to kilometers
+            route_distance_km = route_distance / 1000  # Convert meters to kilometers
+
+            # Initialize a Folium map centered at the midpoint of start and end coordinates
+            m = folium.Map(location=[(start_coords[1] + end_coords[1]) / 2, (start_coords[0] + end_coords[0]) / 2], zoom_start=6)
+
+            # Add the route to the map using GeoJSON coordinates directly
+            folium.PolyLine(
+                locations=[[coord[1], coord[0]] for coord in route_geom['coordinates']],  # Swap back to [latitude, longitude]
+                tooltip='Route',
+                color='blue',
+                weight=5
+            ).add_to(m)
+
+            # Display the map in Streamlit
+            st_folium(m, width=725)
+
+            # Ensure the text is shown after the map is displayed
+            st.write(f"The total length of the route along the road is {route_distance_km:.2f} Kms.")
+        else:
+            st.error("Could not find coordinates for the address. Please enter a valid address.")
+    except Exception as e:
+        st.error(f"Geocoding error: {e}")
+
 # Load data from CSV
 data = load_data(CSV_FILE)
 
 # Display the registration form on the screen
 display_registration_form(data)
+
+# If the map should be shown, call the function to display the route map
+if st.session_state.get('show_map'):
+    display_route_map(st.session_state['area'], st.session_state['city'])
