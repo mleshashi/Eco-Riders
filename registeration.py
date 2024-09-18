@@ -9,7 +9,7 @@ import openrouteservice
 client = openrouteservice.Client(key='5b3ce3597851110001cf6248e1346f2a8cea4749bc4a86ac03b441ec')  # Replace with your actual ORS API key
 
 # Path to the CSV file
-CSV_FILE = "dataset/fan_data.csv"
+CSV_FILE = "dataset/fan_data2.csv"
 
 # Load existing data
 def load_data(file_path):
@@ -37,12 +37,13 @@ def display_registration_form(data):
     gender = st.selectbox("Gender", ["Male", "Female", "Other"])
     area = st.text_input("Street")
     city = st.text_input("City")
-    age = st.number_input("Age", min_value=0)
+    age = st.number_input("Age", min_value=18)
     travel_date = st.date_input("Travel Date", value=datetime.now())
-    mode_of_transport = st.selectbox("Mode of Transport", ["Car", "Train", "Bus"])
-    provider_user = st.selectbox("Provider/User", ["Provider", "User", "-"])
+    mode_of_transport = st.selectbox("Mode of Transport", ["Car", "Bus"])
+    provider_user = st.selectbox("Provider/User", ["Provider", "User"])
+    provided_seats = st.number_input("Seats Provided", min_value=0)
     #offer_vehicle = st.selectbox("Offer Vehicle", ["Yes", "No", "-"])
-    seats = st.number_input("Seats Provided/Needed", min_value=0)
+    needed_seats = st.number_input("Seats Needed", min_value=0)
     short_description = st.text_area("Short Description")
 
     # Button to submit the form
@@ -61,7 +62,8 @@ def display_registration_form(data):
             "Mode of Transport": [mode_of_transport],
             "Provider/User": [provider_user],
             "Offer Vehicle": [0],
-            "Seats Provided/Needed": [seats],
+            "Provided Seats": [provided_seats],
+            "Needed Seats": [needed_seats],
             "Lon": [0],  # Default value since it's not used in form
             "Lat": [0],  # Default value since it's not used in form
             "Short Description": [short_description]
